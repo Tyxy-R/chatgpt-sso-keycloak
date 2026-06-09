@@ -1,0 +1,8 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$KEYCLOAK_HOSTNAME} {
+	encode zstd gzip
+	reverse_proxy keycloak:8080
+}
