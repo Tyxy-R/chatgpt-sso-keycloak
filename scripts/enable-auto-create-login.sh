@@ -33,8 +33,10 @@ kc() {
 }
 
 wait_for_keycloak() {
+  local local_url="${KEYCLOAK_LOCAL_URL:-http://127.0.0.1:8080}"
+
   for _ in $(seq 1 120); do
-    if curl -fsS http://127.0.0.1:8080/realms/master >/dev/null 2>&1; then
+    if curl -fsS "${local_url}/realms/master" >/dev/null 2>&1; then
       return 0
     fi
     sleep 2
@@ -63,7 +65,7 @@ execution_id_for_display() {
     head -n 1
 }
 
-compose up -d postgres keycloak caddy >/dev/null
+compose up -d postgres keycloak >/dev/null
 wait_for_keycloak
 
 compose exec -T -u root keycloak sh -c "rm -f '$kc_config' && touch '$kc_config' && chown keycloak:root '$kc_config' && chmod 600 '$kc_config'"

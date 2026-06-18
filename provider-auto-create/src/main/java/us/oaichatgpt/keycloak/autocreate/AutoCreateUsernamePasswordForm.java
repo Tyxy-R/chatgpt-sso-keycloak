@@ -32,10 +32,10 @@ public class AutoCreateUsernamePasswordForm extends UsernamePasswordForm {
         }
 
         String email = username.trim().toLowerCase();
-        String domain = configuredDomain();
+        String[] domains = configuredDomains();
         String password = configuredPassword();
 
-        if (domain.isBlank() || password.isBlank() || !email.endsWith("@" + domain)) {
+        if (domains.length == 0 || password.isBlank() || !isAllowedEmail(email, domains)) {
             return;
         }
 
@@ -64,9 +64,30 @@ public class AutoCreateUsernamePasswordForm extends UsernamePasswordForm {
         }
     }
 
-    private String configuredDomain() {
-        String value = System.getenv("AUTO_CREATE_USER_DOMAIN");
-        return value == null ? "" : value.trim().toLowerCase();
+    private boolean isAllowedEmail(String email, String[] domains) {
+        for (String domain : domains) {
+            if (email.endsWith("@" + domain)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String[] configuredDomains() {
+        String value = System.getenv("AUTO_CREATE_USER_DOMAINS");
+        if (value == null || value.isBlank()) {
+            value = System.getenv("AUTO_CREATE_USER_DOMAIN");
+        }
+        if (value == null || value.isBlank()) {
+            return new String[0];
+        }
+
+        return java.util.Arrays.stream(value.split(","))
+            .map(String::trim)
+            .map(String::toLowerCase)
+            .filter(domain -> !domain.isBlank())
+            .distinct()
+            .toArray(String[]::new);
     }
 
     private String configuredPassword() {

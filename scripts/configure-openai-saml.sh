@@ -12,6 +12,25 @@ set -a
 . ./.env
 set +a
 
+if [[ $# -gt 3 ]]; then
+  echo "Usage: $0 [openai-sp-entity-id openai-acs-url [openai-sp-metadata-url]]" >&2
+  exit 2
+fi
+
+if [[ $# -ge 1 ]]; then
+  OPENAI_SP_ENTITY_ID="$1"
+fi
+
+if [[ $# -ge 2 ]]; then
+  OPENAI_ACS_URL="$2"
+fi
+
+if [[ $# -ge 3 ]]; then
+  OPENAI_SP_METADATA_URL="$3"
+elif [[ $# -ge 1 ]]; then
+  OPENAI_SP_METADATA_URL="https://external.auth.openai.com/sso/saml/${OPENAI_SP_ENTITY_ID}/metadata.xml"
+fi
+
 compose() {
   docker compose "$@"
 }
@@ -21,14 +40,16 @@ kc() {
 }
 
 wait_for_keycloak() {
+  local local_url="${KEYCLOAK_LOCAL_URL:-http://127.0.0.1:8080}"
+
   for _ in $(seq 1 120); do
-    if curl -fsS http://127.0.0.1:8080/realms/master >/dev/null 2>&1; then
+    if curl -fsS "${local_url}/realms/master" >/dev/null 2>&1; then
       return 0
     fi
     sleep 2
   done
 
-  echo "Keycloak did not become ready on http://127.0.0.1:8080." >&2
+  echo "Keycloak did not become ready on ${local_url}." >&2
   compose logs --tail=120 keycloak >&2
   return 1
 }
@@ -36,7 +57,7 @@ wait_for_keycloak() {
 client_json="$(mktemp)"
 trap 'rm -f "$client_json"' EXIT
 
-compose up -d postgres keycloak caddy
+compose up -d postgres keycloak
 wait_for_keycloak
 
 kc config credentials \
@@ -86,6 +107,18 @@ cat > "$client_json" <<JSON
     "saml_assertion_consumer_url_post": "${OPENAI_ACS_URL}"
   },
   "protocolMappers": [
+    {
+      "name": "id",
+      "protocol": "saml",
+      "protocolMapper": "saml-user-property-mapper",
+      "consentRequired": false,
+      "config": {
+        "user.attribute": "email",
+        "attribute.name": "id",
+        "attribute.nameformat": "Basic",
+        "friendly.name": "id"
+      }
+    },
     {
       "name": "email",
       "protocol": "saml",
@@ -165,9 +198,10 @@ JSON
 compose cp "$client_json" keycloak:/tmp/openai-saml-client.json >/dev/null
 compose exec -T -u root keycloak chmod 0644 /tmp/openai-saml-client.json
 client_id="$(
-  kc get clients -r "$KEYCLOAK_REALM" -q "clientId=${OPENAI_SP_ENTITY_ID}" --fields id --format csv |
-    tail -n +2 |
-    tr -d '"\r'
+  kc get clients -r "$KEYCLOAK_REALM" --fields id,clientId |
+    jq -r --arg client_id "$OPENAI_SP_ENTITY_ID" \
+      '.[] | select(.clientId == $client_id) | .id' |
+    head -n 1
 )"
 
 if [[ -n "$client_id" ]]; then

@@ -22,8 +22,25 @@ email="$1"
 first_name="${2:-User}"
 last_name="${3:-Account}"
 
-if [[ "$email" != *@${ALLOWED_EMAIL_DOMAIN} ]]; then
-  echo "Email must be under @${ALLOWED_EMAIL_DOMAIN} for the verified OpenAI domain." >&2
+allowed_email_domains="${ALLOWED_EMAIL_DOMAINS:-${ALLOWED_EMAIL_DOMAIN}}"
+
+is_allowed_email() {
+  local value="$1"
+  local domain
+
+  IFS=',' read -ra domains <<< "$allowed_email_domains"
+  for domain in "${domains[@]}"; do
+    domain="${domain//[[:space:]]/}"
+    if [[ -n "$domain" && "$value" == *@${domain} ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+if ! is_allowed_email "$email"; then
+  echo "Email must be under one of these verified OpenAI domains: ${allowed_email_domains}" >&2
   exit 1
 fi
 

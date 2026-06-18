@@ -13,13 +13,15 @@ set -a
 . ./.env
 set +a
 
+KEYCLOAK_LOCAL_URL="${KEYCLOAK_LOCAL_URL:-http://127.0.0.1:8080}"
+
 echo "Local Keycloak:"
-curl -fsS "http://127.0.0.1:8080/realms/${KEYCLOAK_REALM}" >/dev/null
-echo "  ok http://127.0.0.1:8080/realms/${KEYCLOAK_REALM}"
+curl -fsS "${KEYCLOAK_LOCAL_URL}/realms/${KEYCLOAK_REALM}" >/dev/null
+echo "  ok ${KEYCLOAK_LOCAL_URL}/realms/${KEYCLOAK_REALM}"
 
 echo "Local SAML metadata:"
-curl -fsS "http://127.0.0.1:8080/realms/${KEYCLOAK_REALM}/protocol/saml/descriptor" >/dev/null
-echo "  ok http://127.0.0.1:8080/realms/${KEYCLOAK_REALM}/protocol/saml/descriptor"
+curl -fsS "${KEYCLOAK_LOCAL_URL}/realms/${KEYCLOAK_REALM}/protocol/saml/descriptor" >/dev/null
+echo "  ok ${KEYCLOAK_LOCAL_URL}/realms/${KEYCLOAK_REALM}/protocol/saml/descriptor"
 
 echo "Public DNS:"
 public_ip="$(curl -4 -fsS https://ifconfig.me || true)"

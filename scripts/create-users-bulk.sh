@@ -9,7 +9,7 @@ Usage: ./scripts/create-users-bulk.sh [--force-password-change] users.csv
 
 CSV format:
   email,firstName,lastName
-  alice@oaichatgpt.xyz,Alice,Zhang
+  alice@example.com,Alice,Zhang
 
 Blank lines and lines starting with # are ignored. The header row is optional.
 USAGE
@@ -70,6 +70,8 @@ set -a
 . ./.env
 set +a
 
+allowed_email_domains="${ALLOWED_EMAIL_DOMAINS:-${ALLOWED_EMAIL_DOMAIN}}"
+
 read -rsp "Initial password for all users: " password
 echo
 read -rsp "Confirm initial password: " password_confirm
@@ -107,6 +109,21 @@ trim() {
   value="${value#"${value%%[![:space:]]*}"}"
   value="${value%"${value##*[![:space:]]}"}"
   printf '%s' "$value"
+}
+
+is_allowed_email() {
+  local value="$1"
+  local domain
+
+  IFS=',' read -ra domains <<< "$allowed_email_domains"
+  for domain in "${domains[@]}"; do
+    domain="$(trim "$domain")"
+    if [[ -n "$domain" && "$value" == *@${domain} ]]; then
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 find_user_id() {
@@ -205,8 +222,8 @@ while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
 
   total=$((total + 1))
 
-  if [[ "$email" != *@${ALLOWED_EMAIL_DOMAIN} ]]; then
-    echo "failed line ${line_no}: ${email} is outside @${ALLOWED_EMAIL_DOMAIN}" >&2
+  if ! is_allowed_email "$email"; then
+    echo "failed line ${line_no}: ${email} is outside allowed domains: ${allowed_email_domains}" >&2
     failed=$((failed + 1))
     continue
   fi

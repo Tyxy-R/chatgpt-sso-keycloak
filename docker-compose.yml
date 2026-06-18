@@ -36,17 +36,20 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
       AUTO_CREATE_USER_DOMAIN: ${ALLOWED_EMAIL_DOMAIN}
+      AUTO_CREATE_USER_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
       AUTO_CREATE_USER_PASSWORD: ${AUTO_CREATE_USER_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:18081:8080"
     volumes:
       - ./providers:/opt/keycloak/providers:ro
 
   caddy:
     image: caddy:2-alpine
+    profiles:
+      - caddy
     restart: unless-stopped
     env_file:
       - .env

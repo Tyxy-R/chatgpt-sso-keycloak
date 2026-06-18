@@ -2,60 +2,79 @@
 
 ## DNS
 
-Point the SSO hostname to the new server IP before testing:
+Point your public IdP hostname to the server before testing:
 
 ```text
-Type: A
+Type: A or CNAME
 Name: sso
-Value: <new-server-ip>
+Value: <new-server-ip-or-target>
 ```
 
-Wait until:
+Wait until DNS resolves:
 
 ```bash
-dig @1.1.1.1 +short sso.oaichatgpt.xyz A
+dig @1.1.1.1 +short sso.example.com A
 ```
 
-returns the new server IP.
-
-## Fresh deployment
-
-Use this path on the new server:
+## Fresh Deployment
 
 ```bash
 cd /root/chatgpt-sso-keycloak
-./scripts/init-env.sh
-./scripts/set-auto-create-password.sh
-docker compose up -d
-./scripts/configure-openai-saml.sh
-./scripts/enable-auto-create-login.sh
-./scripts/check.sh
+cp .env.example .env
+chmod 600 .env
 ```
 
-Then use this URL in OpenAI SSO metadata settings:
+Edit `.env` and set:
 
 ```text
-https://sso.oaichatgpt.xyz/realms/chatgpt/protocol/saml/descriptor
+KEYCLOAK_HOSTNAME
+KEYCLOAK_PUBLIC_URL
+ACME_EMAIL
+OPENAI_SP_ENTITY_ID
+OPENAI_ACS_URL
+OPENAI_SP_METADATA_URL
+ALLOWED_EMAIL_DOMAIN
+ALLOWED_EMAIL_DOMAINS
+AUTO_CREATE_USER_PASSWORD
 ```
 
-## Full configuration package
-
-If the package includes `.env`, do not run `init-env.sh`; use:
+Start the core services:
 
 ```bash
-cd /root/chatgpt-sso-keycloak
-docker compose up -d
+docker compose up -d postgres keycloak
 ./scripts/configure-openai-saml.sh
 ./scripts/enable-auto-create-login.sh
 ./scripts/check.sh
 ```
 
-The database volume is not included in the package. Existing Keycloak users and
-sessions are not migrated by this package.
+If the bundled Caddy service owns HTTPS on this host:
 
-## OpenAI side
+```bash
+docker compose --profile caddy up -d
+```
 
-OpenAI may cache IdP metadata. After moving servers, keep the metadata URL the
-same if the hostname remains `sso.oaichatgpt.xyz`.
+If another reverse proxy owns 80/443, proxy your public hostname to:
 
-If you change the hostname, update `.env`, DNS, and the OpenAI SSO metadata URL.
+```text
+http://127.0.0.1:18081
+```
+
+## OpenAI Side
+
+Use this IdP metadata URL in OpenAI SSO setup:
+
+```text
+https://<KEYCLOAK_HOSTNAME>/realms/<KEYCLOAK_REALM>/protocol/saml/descriptor
+```
+
+If you add another ChatGPT workspace, run `configure-openai-saml.sh` with that
+workspace's SP entity ID and ACS URL. Existing SAML clients are preserved.
+
+## Migration Notes
+
+The database volume contains Keycloak realms, users, keys, and sessions. Moving
+only the repository files does not migrate existing Keycloak state. Back up and
+restore the Docker volume or database if you need to keep users and signing keys.
+
+If the public hostname changes, update `.env`, DNS, and the IdP metadata URL in
+OpenAI. OpenAI may cache IdP metadata briefly.
