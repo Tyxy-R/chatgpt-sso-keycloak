@@ -8,10 +8,6 @@
 用户打开 ChatGPT -> 输入企业邮箱 -> 跳到你的 SSO 域名 -> 登录成功 -> 回到 ChatGPT
 ```
 
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Tyxy-R/chatgpt-sso-keycloak,Tyxy-R/codex-referral-risk-research&type=Date)](https://www.star-history.com/#Tyxy-R/chatgpt-sso-keycloak&Tyxy-R/codex-referral-risk-research&Date)
-
 ## 配套研究工具
 
 如果你需要在这个 SSO / Keycloak 部署基础上做 seed 登录、并发邀请、邀请结果导出、invitee auth 获取和激活遥测研究，请使用配套仓库：
@@ -378,3 +374,7 @@ docker compose up -d --force-recreate keycloak
 ## 19. License
 
 MIT License. See [LICENSE](LICENSE).
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Tyxy-R/chatgpt-sso-keycloak&type=Date)](https://www.star-history.com/#Tyxy-R/chatgpt-sso-keycloak&Date)
