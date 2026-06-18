@@ -8,6 +8,14 @@
 用户打开 ChatGPT -> 输入企业邮箱 -> 跳到你的 SSO 域名 -> 登录成功 -> 回到 ChatGPT
 ```
 
+## 配套研究工具
+
+如果你需要在这个 SSO / Keycloak 部署基础上做 seed 登录、并发邀请、邀请结果导出、invitee auth 获取和激活遥测研究，请使用配套仓库：
+
+https://github.com/Tyxy-R/codex-referral-risk-research
+
+该配套仓库假设本项目的 Keycloak SAML IdP 已经部署完成，并且目标邮箱域名已经在 OpenAI Workspace 中完成验证。
+
 ## 最简单部署
 
 准备好这些东西：
@@ -361,4 +369,4 @@ docker compose up -d --force-recreate keycloak
 - 生产环境建议启用 MFA
 - 共享初始密码只适合临时 onboarding
 - 正式使用建议给每个用户单独密码
-
+- 离职或不再授权的用户应在 Keycloak 和 OpenAI Workspace 两边都移除
